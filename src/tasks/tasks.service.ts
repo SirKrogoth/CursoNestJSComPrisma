@@ -3,7 +3,8 @@ import { title } from 'process';
 
 @Injectable()
 export class TasksService {
-    getTasks(): any[] {
+
+    findAll(): any[] {
         return [
             {
                 id: 1,
@@ -20,13 +21,21 @@ export class TasksService {
         ]
     }
 
+    findOneTask(id: string) {
+        return "Buscar tarefa do ID: " + id;
+    }
 
-    findOneTask(): any[] {
-        return[{
-            id: 2,
-                title: 'Second Task',
-                description: 'This is the second task',
-                status: 'OPEN'
-        }];
+    create(body) {
+        return body
+    }
+
+    update(id: string, body) {
+        console.log(id, body);
+        return body;
+    }
+
+    remove(id: string) {
+        console.log(id);
+        return `Tarefa ${id} removida com sucesso!`;
     }
 }
