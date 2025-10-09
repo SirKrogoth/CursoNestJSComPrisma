@@ -2,83 +2,83 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { Task } from './entities/task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class TasksService {
 
-    private tasks: Task[] = [
-        {
-            id: 1,
-            name: "First Task",
-            description: "So sei que nada sei, e amanha saberei mais sobre nada...",
-            completed: false
-        },
-        {
-            id: 2,
-            name: "Second Task",
-            description: "Levar os dogs para passear",
-            completed: false
-        },
-        {
-            id: 3,
-            name: "Third Task",
-            description: "Levar o Nícolas na aula de natação",
-            completed: false
-        }
-    ];
+    constructor(private prisma: PrismaService) {}
 
-    findAll(): any[] {
-        return this.tasks;
+    async findAll(paginationDto?: PaginationDto) {
+        const { limit = 10, offset = 0 } = paginationDto || {};
+        const allTasks = await this.prisma.task.findMany({
+            skip: offset,
+            take: limit,
+        });
+
+        return allTasks;
     }
 
-    findOneTask(id: number) {
-        const task = this.tasks.find(task => task.id === id);
+    async findOneTask(id: number) {
+        const task = await this.prisma.task.findFirst({
+            where: { id }
+        });
 
-        if (task) {
+        if (task?.name) {
             return task;
         }
 
         throw new HttpException('Tarefa não encontrada', HttpStatus.NOT_FOUND);
     }
 
-    create(createTaskDto: CreateTaskDto) {
-        const newId = this.tasks.length + 1;
-
-        const newTask = {
-            id: newId,
-            ...createTaskDto,
-            completed: false
-        }
-
-        this.tasks.push(newTask);
+    async create(createTaskDto: CreateTaskDto) {
+        const newTask = await this.prisma.task.create({
+            data: {
+                name: createTaskDto.name,
+                description: createTaskDto.description, 
+                completed: false,
+            }
+        });
 
         return newTask;
     }
 
-    update(id: string, updateTaskDto: UpdateTaskDto) {
-        const taskIndex = this.tasks.findIndex(task => task.id === Number(id));
+    async update(id: string, updateTaskDto: UpdateTaskDto) {
+        const findTask = await this.prisma.task.findFirst({
+            where: { id: Number(id) }
+        });
 
-        if(taskIndex < 0) {
+        if (!findTask?.name) {
             throw new HttpException('Tarefa não encontrada', HttpStatus.NOT_FOUND);
         }
 
-        this.tasks[taskIndex] = {
-            ...this.tasks[taskIndex],
-            ...updateTaskDto
-        }
+        const updatedTask = await this.prisma.task.update({
+            where: { id: Number(id) },
+            data: updateTaskDto
+        });
 
-        return this.tasks[taskIndex];
+        return updatedTask;
     }
 
-    remove(id: string) {
-        const taskIndex = this.tasks.findIndex(task => task.id === Number(id));
+    async remove(id: string) {
+        try {
+            const findTask = await this.prisma.task.findFirst({
+                where: { id: Number(id) }
+            });
 
-        if(taskIndex < 0) {
-            throw new HttpException('Tarefa não encontrada', HttpStatus.NOT_FOUND);
+            if (!findTask?.name) {
+                throw new HttpException('Tarefa não encontrada', HttpStatus.NOT_FOUND);
+            }
+
+            await this.prisma.task.delete({
+                where: { id: Number(id) }
+            });
+
+            return { message: 'Tarefa deletada com sucesso!' };    
+        } catch (error) {
+            throw new HttpException('Erro ao deletar a tarefa. Mensagem: ' + error, HttpStatus.INTERNAL_SERVER_ERROR);    
         }
-
-        this.tasks.splice(taskIndex, 1);
-       
-        return this.findAll();
+        
     }
 }
