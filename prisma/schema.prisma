@@ -18,5 +18,22 @@ model Task {
   name        String
   description String
   completed   Boolean  @default(false)
+
+  userId      Int?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt   DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model User{
+  id        Int      @id @default(autoincrement())  
+  name      String
+  passwordHash String
+  email     String   @unique
+
+  Task Task[]
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt 
 }

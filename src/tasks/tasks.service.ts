@@ -1,5 +1,4 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Task } from './entities/task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -33,15 +32,25 @@ export class TasksService {
     }
 
     async create(createTaskDto: CreateTaskDto) {
-        const newTask = await this.prisma.task.create({
+        try {
+            const newTask = await this.prisma.task.create({
             data: {
-                name: createTaskDto.name,
-                description: createTaskDto.description, 
-                completed: false,
-            }
-        });
+                    name: createTaskDto.name,
+                    description: createTaskDto.description, 
+                    completed: false,
+                    userId: createTaskDto.userId,
+                }, select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    userId: true,
+                }
+            });
 
-        return newTask;
+            return newTask;   
+        } catch (error) {
+            throw new HttpException('Erro ao criar a tarefa. Mensagem: ' + error, HttpStatus.BAD_REQUEST);   
+        }        
     }
 
     async update(id: string, updateTaskDto: UpdateTaskDto) {
